@@ -1,0 +1,6 @@
+.venv/
+.env
+MetroPT3(AirCompressor).csv
+__pycache__/
+.ipynb_checkpoints/
+Appunti_Diario

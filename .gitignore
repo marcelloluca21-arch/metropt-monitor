@@ -3,4 +3,6 @@
 MetroPT3(AirCompressor).csv
 __pycache__/
 .ipynb_checkpoints/
-Appunti_Diario
+Appunti_Diario/
+.tmp.driveupload/
+.tmp.drivedownload/

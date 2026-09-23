@@ -1,8 +1,8 @@
 import pandas as pd
 import sys
 
-def load_csv():
-    return pd.read_csv("tests/fixtures/valid_minimal.csv", chunksize = 100)
+def load_csv(percorso_csv):
+    return pd.read_csv(percorso_csv, chunksize = 100)
 
 
 def remove_unnamed(chunk):
@@ -58,12 +58,15 @@ def count_timestamp_duplicate(chunk):
     return chunk["timestamp"].duplicated().sum()
 
 def datetime(chunk):
-    chunk["timestamp"] = pd.to_datetime(chunk["timestamp"])
+    chunk["timestamp"] = pd.to_datetime(
+        chunk["timestamp"],
+        format="%Y-%m-%d %H:%M:%S"
+    )
     return chunk
 
 if __name__ == "__main__":
 
-    reader = load_csv()
+    reader = load_csv("data/MetroPT3(AirCompressor).csv")
 
     totale_chunk = 0
     totale_righe = 0

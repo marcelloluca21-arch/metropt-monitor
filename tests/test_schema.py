@@ -1,11 +1,12 @@
 from metropt_pipeline.schema import load_csv, remove_unnamed, check_df, rename_dv_electric, count_righe_valori_null, digitali_binari, count_timestamp_duplicate, datetime
 import pandas as pd
 import pytest
+import warnings
 
 #per creare i test devo utilizzare la logica AAA:
 #Arrange - Act - Assert
 def test_load_csv():
-    reader = load_csv()
+    reader = load_csv("tests/fixtures/valid_minimal.csv")
     chunk_count = 0
 
     for chunk in reader:
@@ -120,8 +121,11 @@ def test_count_timestamp_duplicate():
 
 def test_datetime():
     chunk = pd.DataFrame({
-    "timestamp" : ["2020-02-01 00:00:00", "2020-02-01 00:10:00", "2020-02-01 00:20:00"]
+    "timestamp" : ["2020-02-15 20:20:01", "2020-02-15 20:20:11", "2020-02-15 20:20:21"]
     })
 
-    df = datetime(chunk)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        df = datetime(chunk)
+
     assert pd.api.types.is_datetime64_any_dtype(df["timestamp"])

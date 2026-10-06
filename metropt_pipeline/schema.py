@@ -1,15 +1,14 @@
 import pandas as pd
 import sys
-
-def load_csv(percorso_csv):
-    return pd.read_csv(percorso_csv, chunksize = 100)
-
+def load_csv(percorso_csv, chunksize):
+    return pd.read_csv(percorso_csv, chunksize = chunksize)
 
 def remove_unnamed(chunk):
     return chunk.drop(columns=["Unnamed: 0"])
 
 def check_df(chunk):
-    features = ['timestamp',
+    features = ['Unnamed: 0',
+                'timestamp',
                 'TP2',
                 'TP3',
                 'H1',
@@ -64,9 +63,23 @@ def datetime(chunk):
     )
     return chunk
 
+def to_lowercase_columns(chunk):
+    chunk.columns = chunk.columns.str.lower()
+    return chunk
+
+def create_cleaned_chunk(chunk):
+    chunk = remove_unnamed(chunk)
+    chunk = rename_dv_electric(chunk)
+    chunk = digitali_binari(chunk)
+    chunk = datetime(chunk)
+    chunk = to_lowercase_columns(chunk)
+    return chunk
+
 if __name__ == "__main__":
 
-    reader = load_csv("data/MetroPT3(AirCompressor).csv")
+    percorso_csv = "tests/fixtures/valid_minimal.csv"
+    chunksize = 100.000
+    reader = load_csv(percorso_csv, chunksize)
 
     totale_chunk = 0
     totale_righe = 0
@@ -74,21 +87,24 @@ if __name__ == "__main__":
     totale_duplicati_timestamp = 0
 
     for i, chunk in enumerate(reader):
-        # 1. Pulisce il chunk corrente (avviene 1 sola volta per ciascun chunk)
-        cleaned_chunk = remove_unnamed(chunk)
-
         # 2. Se è il primissimo chunk (indice 0), controlla lo schema
         if i == 0:
-            check_df(cleaned_chunk)
+            check_df(chunk)        # 1. Pulisce il chunk corrente (avviene 1 sola volta per ciascun chunk)
 
-        chunk = rename_dv_electric(cleaned_chunk)
+        chunk = remove_unnamed(chunk)
+
+
+
+        chunk = rename_dv_electric(chunk)
         chunk = digitali_binari(chunk)
         chunk = datetime(chunk)
+        chunk = to_lowercase_columns(chunk)
 
         totale_duplicati_timestamp += count_timestamp_duplicate(chunk)
         totale_nulli += count_righe_valori_null(chunk)
         totale_righe += len(chunk)
         totale_chunk += 1
+    print(chunk)
 
     if totale_chunk == 0:
         sys.exit("ERRORE CRITICO: Nessun dato elaborato dal file.")

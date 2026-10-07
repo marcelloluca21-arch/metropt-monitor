@@ -3,10 +3,8 @@ import pandas as pd
 import pytest
 import warnings
 
-#per creare i test devo utilizzare la logica AAA:
-#Arrange - Act - Assert
 def test_load_csv():
-    reader = load_csv("tests/fixtures/valid_minimal.csv")
+    reader = load_csv("tests/fixtures/valid_minimal.csv", 100)
     chunk_count = 0
 
     for chunk in reader:
@@ -28,7 +26,8 @@ def test_remove_unnamed():
     assert "timestamp" in df_risultato.columns
 
 def test_check_df_corretto():
-    features = ['timestamp',
+    features = ['Unnamed: 0',
+                'timestamp',
                 'TP2',
                 'TP3',
                 'H1',
@@ -49,7 +48,8 @@ def test_check_df_corretto():
     assert features == list(df.columns)
 
 def test_check_df_errato():
-    features_corrette = ['timestamp',
+    features_corrette = ['Unnamed: 0',
+                         'timestamp',
                          'TP2',
                          'TP3',
                          'H1',

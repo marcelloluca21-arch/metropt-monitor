@@ -29,7 +29,9 @@ def check_df(chunk):
         print("Schema verified successfully.")
         return(chunk)
     else:
-        sys.exit("CRITICAL ERROR: Dataset feautures doesn't match.")
+        raise ValueError(
+            f"Unexpected CSV schema: expected {features}, got {list(chunk.columns)}"
+        )
 
 def rename_dv_electric(chunk):
     return chunk.rename(columns={"DV_eletric": "dv_electric"})

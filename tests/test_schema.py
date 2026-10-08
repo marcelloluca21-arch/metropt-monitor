@@ -72,7 +72,7 @@ def test_check_df_invalid_schema():
     ]
 
     for features in invalid_schemas:
-        with pytest.raises(SystemExit):
+        with pytest.raises(ValueError):
             check_df(pd.DataFrame(columns=features))
 
 def test_rename_dv_electric():

@@ -2,18 +2,18 @@ import pandas as pd
 import pytest
 from psycopg.errors import CheckViolation
 
-from metropt_pipeline.loader import pipeline_exe
+from metropt_pipeline.loader import run_pipeline
 from metropt_pipeline.persistence import get_connection
 
 DB_TEST = "POSTGRES_DB_TEST"
-CSV_VALIDO = "tests/fixtures/valid_minimal.csv"
-CSV_CON_ERRORE = "tests/fixtures/invalid_towers_block4.csv"
+VALID_CSV = "tests/fixtures/valid_minimal.csv"
+INVALID_CSV = "tests/fixtures/invalid_towers_block4.csv"
 CHUNKSIZE = 100
 
 
 @pytest.fixture
 def cur():
-    """Cursore sul database di test, con la tabella metropt vuota."""
+    """Cursor on the test database, with an empty metropt table."""
     with get_connection(DB_TEST) as conn:
         with conn.cursor() as cur:
             cur.execute("TRUNCATE TABLE metropt")
@@ -21,37 +21,37 @@ def cur():
             yield cur
 
 
-def conta_righe(cur):
-    """Restituisce il numero di righe presenti nella tabella metropt."""
+def count_rows(cur):
+    """Return the number of rows in the metropt table."""
     cur.execute("SELECT COUNT(*) FROM metropt")
     return cur.fetchone()[0]
 
 
 @pytest.mark.integration
-def test_pipeline_exe(cur):
-    righe_attese = len(pd.read_csv(CSV_VALIDO))
+def test_second_import_adds_no_rows(cur):
+    expected_rows = len(pd.read_csv(VALID_CSV))
 
-    pipeline_exe(CSV_VALIDO, DB_TEST, CHUNKSIZE)
-    risultato1 = conta_righe(cur)
-    assert risultato1 == righe_attese
+    run_pipeline(VALID_CSV, DB_TEST, CHUNKSIZE)
+    total1 = count_rows(cur)
+    assert total1 == expected_rows
 
-    pipeline_exe(CSV_VALIDO, DB_TEST, CHUNKSIZE)
-    risultato2 = conta_righe(cur)
-    assert risultato2 == risultato1
+    run_pipeline(VALID_CSV, DB_TEST, CHUNKSIZE)
+    total2 = count_rows(cur)
+    assert total2 == total1
 
 
 @pytest.mark.integration
 def test_half_chunk_error(cur):
-    df_errato = pd.read_csv(CSV_CON_ERRORE)
-    posizione_errore = df_errato.index[df_errato["Towers"] == 2][0]
+    df_incorrect = pd.read_csv(INVALID_CSV)
+    error_position = df_incorrect.index[df_incorrect["Towers"] == 2][0]
 
-    blocchi_confermati = posizione_errore // CHUNKSIZE
-    righe_attese_dopo_errore = blocchi_confermati * CHUNKSIZE
+    confirmed_chunks = error_position // CHUNKSIZE
+    expected_rows_after_error = confirmed_chunks * CHUNKSIZE
 
     with pytest.raises(CheckViolation):
-        pipeline_exe(CSV_CON_ERRORE, DB_TEST, CHUNKSIZE)
+        run_pipeline(INVALID_CSV, DB_TEST, CHUNKSIZE)
 
-    assert conta_righe(cur) == righe_attese_dopo_errore
+    assert count_rows(cur) == expected_rows_after_error
 
-    pipeline_exe(CSV_VALIDO, DB_TEST, CHUNKSIZE)
-    assert conta_righe(cur) == len(pd.read_csv(CSV_VALIDO))
+    run_pipeline(VALID_CSV, DB_TEST, CHUNKSIZE)
+    assert count_rows(cur) == len(pd.read_csv(VALID_CSV))

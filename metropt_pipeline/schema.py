@@ -1,7 +1,7 @@
 import pandas as pd
 import sys
-def load_csv(percorso_csv, chunksize):
-    return pd.read_csv(percorso_csv, chunksize = chunksize)
+def load_csv(csv_path, chunksize):
+    return pd.read_csv(csv_path, chunksize = chunksize)
 
 def remove_unnamed(chunk):
     return chunk.drop(columns=["Unnamed: 0"])
@@ -26,19 +26,21 @@ def check_df(chunk):
                 'Caudal_impulses']
 
     if features == list(chunk.columns):
-        print("Schema verificato con successo!")
+        print("Schema verified successfully.")
         return(chunk)
     else:
-        sys.exit("ERRORE CRITICO: Le colonne del dataset non corrispondono allo schema richiesto. Pipeline bloccata.")
+        raise ValueError(
+            f"Unexpected CSV schema: expected {features}, got {list(chunk.columns)}"
+        )
 
 def rename_dv_electric(chunk):
     return chunk.rename(columns={"DV_eletric": "dv_electric"})
 
-def count_righe_valori_null(chunk):
+def count_rows_with_nulls(chunk):
     return chunk.isna().any(axis=1).sum()
 
-def digitali_binari(chunk):
-    digitali = [
+def convert_digital_binary(chunk):
+    digital = [
     "COMP",
     "dv_electric",
     "Towers",
@@ -49,14 +51,14 @@ def digitali_binari(chunk):
     "Caudal_impulses"
     ]
 
-    chunk[digitali] = chunk[digitali].astype(int)
+    chunk[digital] = chunk[digital].astype(int)
 
     return chunk
 
 def count_timestamp_duplicate(chunk):
     return chunk["timestamp"].duplicated().sum()
 
-def datetime(chunk):
+def convert_timestamp_datetime(chunk):
     chunk["timestamp"] = pd.to_datetime(
         chunk["timestamp"],
         format="%Y-%m-%d %H:%M:%S"
@@ -70,47 +72,43 @@ def to_lowercase_columns(chunk):
 def create_cleaned_chunk(chunk):
     chunk = remove_unnamed(chunk)
     chunk = rename_dv_electric(chunk)
-    chunk = digitali_binari(chunk)
-    chunk = datetime(chunk)
+    chunk = convert_digital_binary(chunk)
+    chunk = convert_timestamp_datetime(chunk)
     chunk = to_lowercase_columns(chunk)
     return chunk
 
 if __name__ == "__main__":
 
-    percorso_csv = "tests/fixtures/valid_minimal.csv"
-    chunksize = 100.000
-    reader = load_csv(percorso_csv, chunksize)
+    csv_path = "tests/fixtures/valid_minimal.csv"
+    chunksize = 100000
+    reader = load_csv(csv_path, chunksize)
 
-    totale_chunk = 0
-    totale_righe = 0
-    totale_nulli = 0
-    totale_duplicati_timestamp = 0
+    total_chunk = 0
+    total_rows = 0
+    total_null = 0
+    total_duplicated_timestamp = 0
 
     for i, chunk in enumerate(reader):
-        # 2. Se è il primissimo chunk (indice 0), controlla lo schema
         if i == 0:
-            check_df(chunk)        # 1. Pulisce il chunk corrente (avviene 1 sola volta per ciascun chunk)
+            check_df(chunk)
 
         chunk = remove_unnamed(chunk)
-
-
-
         chunk = rename_dv_electric(chunk)
-        chunk = digitali_binari(chunk)
-        chunk = datetime(chunk)
+        chunk = convert_digital_binary(chunk)
+        chunk = convert_timestamp_datetime(chunk)
         chunk = to_lowercase_columns(chunk)
 
-        totale_duplicati_timestamp += count_timestamp_duplicate(chunk)
-        totale_nulli += count_righe_valori_null(chunk)
-        totale_righe += len(chunk)
-        totale_chunk += 1
+        total_duplicated_timestamp += count_timestamp_duplicate(chunk)
+        total_null += count_rows_with_nulls(chunk)
+        total_rows += len(chunk)
+        total_chunk += 1
     print(chunk)
 
-    if totale_chunk == 0:
-        sys.exit("ERRORE CRITICO: Nessun dato elaborato dal file.")
+    if total_chunk == 0:
+        sys.exit("CRITICAL ERROR: No data processed from file.")
 
-    print("Resoconto Finale Pipeline")
-    print(f"Totale chunk elaborati: {totale_chunk} ")
-    print(f"Totali righe elaborate: {totale_righe}")
-    print(f"Totali righe con almeno un valore nullo: {totale_nulli}")
-    print(f"Totali timestamp duplicati: {totale_duplicati_timestamp}")
+    print("Pipeline summary")
+    print(f"Total chunks processed: {total_chunk}")
+    print(f"Total rows processed: {total_rows}")
+    print(f"Total rows with at least one null: {total_null}")
+    print(f"Total duplicated timestamps: {total_duplicated_timestamp}")
